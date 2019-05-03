@@ -36,6 +36,18 @@ type VideoMedia struct {
 	Video            Video  `json:"video"`
 }
 
+type StatusMedia struct {
+	MediaID          int64  `json:"media_id"`
+	MediaIDString    string `json:"media_id_string"`
+	MediaKey         string `json:"media_key"`
+	ExpiresAfterSecs int    `json:"expires_after_secs"`
+	ProcessingInfo   struct {
+		State           string `json:"state"`
+		CheckAfterSecs  int    `json:"check_after_secs"`
+		ProgressPercent int    `json:"progress_percent"`
+	} `json:"processing_info"`
+}
+
 func (a TwitterApi) UploadMedia(base64String string) (media Media, err error) {
 	v := url.Values{}
 	v.Set("media_data", base64String)
@@ -85,5 +97,17 @@ func (a TwitterApi) UploadVideoFinalize(mediaIdString string) (videoMedia VideoM
 
 	response_ch := make(chan response)
 	a.queryQueue <- query{UploadBaseUrl + "/media/upload.json", v, &mediaResponse, _POST, response_ch}
+	return mediaResponse, (<-response_ch).err
+}
+
+func (a TwitterApi) UploadVideoStatus(mediaIdString string) (videoMedia StatusMedia, err error) {
+	v := url.Values{}
+	v.Set("command", "STATUS")
+	v.Set("media_id", mediaIdString)
+
+	var mediaResponse StatusMedia
+
+	response_ch := make(chan response)
+	a.queryQueue <- query{UploadBaseUrl + "/media/upload.json", v, &mediaResponse, _GET, response_ch}
 	return mediaResponse, (<-response_ch).err
 }
